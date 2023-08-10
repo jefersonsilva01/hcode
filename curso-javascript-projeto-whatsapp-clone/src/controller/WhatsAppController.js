@@ -1,4 +1,8 @@
-class WhatsAppController {
+import { Format } from './../util/Format';
+import { CameraController } from './CameraController';
+import { DocumentPreviewController } from './DocumentPreviewController';
+
+export class WhatsAppController {
     constructor() {
 
         this.elementsPrototype();
@@ -155,15 +159,37 @@ class WhatsAppController {
             this.el.panelCamera.css({
                 'height': 'calc(100% - 120px)'
             });
+
+            this._camera = new CameraController(this.el.videoCamera);
         });
 
         this.el.btnClosePanelCamera.on('click', e => {
             this.closeAllMainPanel();
             this.el.panelMessagesContainer.show();
+            this._camera.stop();
         });
 
         this.el.btnTakePicture.on('click', e => {
-            console.log('take picture')
+            let dataUrl = this._camera.takePicture();
+
+            this.el.pictureCamera.src = dataUrl;
+            this.el.pictureCamera.show();
+            this.el.videoCamera.hide();
+            this.el.btnReshootPanelCamera.show();
+            this.el.containerTakePicture.hide();
+            this.el.containerSendPicture.show();
+        });
+
+        this.el.btnSendPicture.on('click', e => {
+            console.log(this.el.pictureCamera.src);
+        })
+
+        this.el.btnReshootPanelCamera.on('click', e => {
+            this.el.pictureCamera.hide();
+            this.el.videoCamera.show();
+            this.el.btnReshootPanelCamera.hide();
+            this.el.containerTakePicture.show();
+            this.el.containerSendPicture.hide();
         });
 
         this.el.btnAttachDocument.on('click', e => {
@@ -172,7 +198,63 @@ class WhatsAppController {
             // this.el.panelDocumentPreview.css({
             //     'height': 'calc(100% - 120px)'
             // });
+            this.el.inputDocument.click();
         });
+
+        this.el.inputDocument.on('change', e => {
+            if (this.el.inputDocument.files.length) {
+
+                // this.el.panelDocumentPreview.css({
+                //     'height': '1%'
+                // });
+
+                let file = this.el.inputDocument.files[0];
+
+                this._documentPreviewController = new DocumentPreviewController(file);
+                this._documentPreviewController.getPreviewData().then(result => {
+
+                    this.el.imgPanelDocumentPreview.src = result.src;
+                    this.el.infoPanelDocumentPreview.innerHTML = result.info;
+                    this.el.imagePanelDocumentPreview.show();
+                    this.el.filePanelDocumentPreview.hide();
+
+                    // this.el.panelDocumentPreview.css({
+                    //     'height': 'calc(100% - 120px)'
+                    // });
+
+                }).catch(err => {
+                    
+                    // this.el.panelDocumentPreview.css({
+                    //     'height': 'calc(100% - 120px)'
+                    // });
+
+                    switch (file.type) {
+                        case 'application/vnd-ms-excel':
+                        case 'application/vnd-openxmlformats-officedocument.spreadsheetml.sheet':
+                            this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-xls';
+                        break;
+
+                        case 'application/vnd.ms-powerpoint':
+                        case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                            this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-ppt';
+                        break;
+
+                        case 'application/msword':
+                        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                            this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-doc';
+                        break;
+
+                        default:
+                            this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-generic';
+                        break;
+                    }
+
+                    this.el.filenamePanelDocumentPreview.innerHTML = file.name;
+                    this.el.imagePanelDocumentPreview.hide();
+                    this.el.filePanelDocumentPreview.show();
+                });
+            }
+        })
 
         this.el.btnClosePanelDocumentPreview.on('click', e => {
             this.closeAllMainPanel();
@@ -235,8 +317,39 @@ class WhatsAppController {
 
         this.el.panelEmojis.querySelectorAll('.emojik').forEach(emoji => {
             emoji.on('click', e => {
-                console.log(emoji.dataset.unicode);
-            })
+
+                let img = this.el.imgEmojiDefault.cloneNode();
+
+                img.style.cssText = emoji.style.cssText;
+                img.dataset.unicode = emoji.dataset.unicode;
+                img.alt = emoji.dataset.unicode;
+
+                emoji.classList.forEach(name => {
+                    img.classList.add(name);
+                });
+
+                let cursor = window.getSelection();
+
+                if (!cursor.focusNode || !cursor.focusNode.id == 'input-text') {
+                    this.el.inputText.focus();
+                    cursor = window.getSelection();
+                }
+
+                let range = document.createRange();
+
+                range = cursor.getRangeAt(0);
+                range.deleteContents();
+
+                let frag = document.createDocumentFragment();
+
+                frag.appendChild(img);
+
+                range.insertNode(frag);
+
+                range.setStartAfter(img);
+
+                this.el.inputText.dispatchEvent(new Event('keyup'));
+            });
         });
     }
 
