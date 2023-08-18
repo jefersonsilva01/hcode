@@ -2,6 +2,8 @@ var conn = require('./../inc/db');
 var express = require('express');
 var menus = require('../inc/menus');
 var router = express.Router();
+var reservations = require('../inc/reservations');
+var contacts = require('../inc/contacts');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -15,11 +17,25 @@ router.get('/', function (req, res, next) {
 });
 
 router.get('/contacts', function (req, res, next) {
-  res.render('contacts', {
-    title: 'Conatato - Restaurante Saboroso!',
-    background: 'images/img_bg_3.jpg',
-    h1: 'Diga um oi!'
-  });
+  contacts.render(req, res);
+});
+
+
+router.post('/contacts', function (req, res, next) {
+  if (!req.body.name) {
+    contacts.render(req, res, "Digite o nome");
+  } else if (!req.body.email) {
+    contacts.render(req, res, "Digite o e-mail");
+  } else if (!req.body.message) {
+    contacts.render(req, res, "Digite uma mensagem");
+  } else {
+    contacts.save(req.body).then(results => {
+      req.body = {};
+      contacts.render(req, res, null, "Mensagem enviada!");
+    }).catch(err => {
+      contacts.render(req, res, err.message);
+    })
+  }
 });
 
 router.get('/menus', function (req, res, next) {
@@ -34,11 +50,28 @@ router.get('/menus', function (req, res, next) {
 });
 
 router.get('/reservations', function (req, res, next) {
-  res.render('reservations', {
-    title: 'Reservas - Restaurante Saboroso!',
-    background: 'images/img_bg_2.jpg',
-    h1: 'Reserve uma Mase!'
-  });
+  reservations.render(req, res);
+});
+
+router.post('/reservations', function (req, res, next) {
+  if (!req.body.name) {
+    reservations.render(req, res, "Digite o nome");
+  } else if (!req.body.email) {
+    reservations.render(req, res, "Digite o e-mail");
+  } else if (!req.body.people) {
+    reservations.render(req, res, "Selecione o número de pessoas");
+  } else if (!req.body.date) {
+    reservations.render(req, res, "Selecione a data");
+  } else if (!req.body.time) {
+    reservations.render(req, res, "Selecione a hora");
+  } else {
+    reservations.save(req.body).then(results => {
+      req.body = {};
+      reservations.render(req, res, null, "Reserva realizada com sucesso!");
+    }).catch(err => {
+      reservations.render(req, res, err.message);
+    });
+  }
 });
 
 router.get('/services', function (req, res, next) {
